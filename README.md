@@ -107,8 +107,9 @@ This repository was built on top of [ReMDM](https://github.com/kuleshov-group/re
 ```
 @article{kim2025fine,
   title={Fine-Tuning Masked Diffusion for Provable Self-Correction},
-  author={Kim*, Jaeyeon and Kim*, Seunggeun and Lee*, Taekyun and Pan, David Z and Kim, Hyeji and Kakade, Sham and Chen, Sitan},
+  author={Kim, Jaeyeon and Kim, Seunggeun and Lee, Taekyun and Pan, David Z and Kim, Hyeji and Kakade, Sham and Chen, Sitan},
   journal={arXiv preprint arXiv:2510.01384},
+  note={Jaeyeon Kim and Seunggeun Kim contributed equally; Taekyun Lee is also a co–first author.}
   year={2025}
 }
 ```
