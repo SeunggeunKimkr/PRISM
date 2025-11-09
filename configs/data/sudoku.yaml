@@ -1,0 +1,7 @@
+train: sudoku
+valid: sudoku
+test: sudoku
+tokenizer_name_or_path: sudoku
+cache_dir: /share/kuleshov/ssahoo/textdiffusion/data
+wrap: False
+streaming: False
