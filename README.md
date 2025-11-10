@@ -50,12 +50,12 @@ We provide pre-training script for Sudoku only:
 
 For PRISM fine-tuning, we provide the following scripts:
 
-- **Sudoku**:
+- Sudoku:
   ```bash
   ./scripts/finetune_sudoku_prism.sh
   ```
 
-- **OWT**:
+- OWT:
   ```bash
   ./scripts/finetune_owt_prism.sh
   ```
@@ -63,13 +63,13 @@ For PRISM fine-tuning, we provide the following scripts:
 ## Evaluation 🎯
 We provide evaluation scripts for the fine-tuned module using a static sampler:
 
-- **Sudoku** (Success Rate):
+- Sudoku (Success Rate):
   ```bash
   ./scripts/sample_sudoku_prism.sh
   ```
 
-- **OWT** (MAUVE, Gen PPL, Entropy):
-  For faster evaluation, we support multi-node text generation on the OWT dataset:
+- OWT (MAUVE, Gen PPL, Entropy):
+  For faster evaluation, we support multi-node text generation:
   ```bash
   ./scripts/sample_owt_prism.sh
   ```
@@ -77,31 +77,31 @@ We provide evaluation scripts for the fine-tuned module using a static sampler:
 
   You can enhance the generated texts by applying a loop strategy. Modify the following parameters in the bash scripts to customize the behavior:
 
-  1. **sampling.loop_steps**: Number of loop iterations to perform.
-  2. **sampling.num_remask_loop**: Number of tokens to remask during each iteration.
+  1. sampling.loop_steps: Number of loop iterations to perform.
+  2. sampling.num_remask_loop: Number of tokens to remask during each iteration.
 
 ## Baselines 🆚
 
 We provide baseline implementations for comparison:
 
-- **Sudoku**:
-  - **Token-Critic**: An unofficial training recipe for the [Token-Critic](https://arxiv.org/abs/2209.04439) approach on the Sudoku dataset:
+- Sudoku:
+  - Token-Critic: An unofficial training recipe for the [Token-Critic](https://arxiv.org/abs/2209.04439) approach on the Sudoku dataset:
     ```bash
     ./scripts/finetune_sudoku_token_critic.sh
     ```
-  - **ReMDM-conf Sampler**: Evaluate using the ReMDM-conf sampler:
+  - ReMDM-conf Sampler: Evaluate using the ReMDM-conf sampler:
     ```bash
     ./scripts/sample_sudoku_remdm-conf.sh
     ```
 
-- **OWT**:
-  - **ReMDM-cap Sampler**: Evaluate using the ReMDM-cap sampler:
+- OWT:
+  - ReMDM-cap Sampler: Evaluate using the ReMDM-cap sampler:
     ```bash
     ./scripts/sample_owt_remdm.sh
     ```
 
-### Acknowledgements 🙏
-This repository was built on top of [ReMDM](https://github.com/kuleshov-group/remdm) which was based on [MDLM](https://github.com/kuleshov-group/mdlm) and [SEDD](https://github.com/louaaron/Score-Entropy-Discrete-Diffusion).
+## Acknowledgements 🙏
+This repository was built on top of [ReMDM](https://github.com/kuleshov-group/remdm), which was based on [MDLM](https://github.com/kuleshov-group/mdlm) and [SEDD](https://github.com/louaaron/Score-Entropy-Discrete-Diffusion).
 
 ## Citation 📝
 ```
