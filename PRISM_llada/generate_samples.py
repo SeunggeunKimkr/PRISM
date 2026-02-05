@@ -9,6 +9,7 @@ from transformers import AutoModel, AutoTokenizer
 from peft import LoraConfig, TaskType, get_peft_model
 from llada import RemaskingLLaDA
 from sampling import llada_inference
+from sampling_rebuttal import llada_inference_diff_models
 from pathlib import Path
 
 # ---------------- utils ----------------
@@ -28,11 +29,13 @@ def setup_ddp():
     return local_rank, dist.get_world_size()
 
 def build_output_prefix(args) -> str:
-    prefix = f"{args.output_path}_{args.model_type}_{args.remasking_mode}_{args.steps}"
+    out = args.prompts.split("/")[-1].split(".")[0]
+    prefix = f"{out}_{args.model_type}_{args.remasking_mode}_{args.steps}"
     if args.remasking:
-        prefix += f"_remasking_{args.num_remasking}_pass{args.pass_K}"
+        prefix += f"_remasking{args.num_remasking}"
     else:
-        prefix += f"_no_remasking_pass{args.pass_K}"
+        prefix += f"_no_remasking"
+    prefix += f"_remasking_threshold{args.remasking_threshold}"
     return prefix
 
 def cleanup_ddp():
@@ -106,7 +109,7 @@ def generate_samples(model, tokenizer, loader, args, device, rank) -> int:
                 init_seed(seed_k)
                 out = llada_inference(
                     model, enc["input_ids"], tokenizer, args.steps, args.max_length, args.model_type, args.block_length,
-                    args.unmasking, args.remasking, args.remasking_mode, args.num_remasking, args.temperature
+                    args.unmasking, args.remasking, args.remasking_mode, args.num_remasking, args.temperature, args.remasking_threshold
                 )
                 codes = tokenizer.batch_decode(out, skip_special_tokens=True)
             
@@ -204,7 +207,7 @@ def main(args):
         ).to(device)
         out = llada_inference(
                 model, enc["input_ids"], tokenizer, args.steps, args.max_length, args.model_type, args.block_length,
-                args.unmasking, args.remasking, args.remasking_mode, args.num_remasking, args.temperature
+                args.unmasking, args.remasking, args.remasking_mode, args.num_remasking, args.temperature, args.remasking_threshold
         )
         code = tokenizer.batch_decode(out, skip_special_tokens=True)[0]
         solution = extract_solution(code)
@@ -272,15 +275,15 @@ if __name__ == "__main__":
     ap.add_argument("--steps", type=int, default=512)
     ap.add_argument("--unmasking", type=str, default="prob_max")
     ap.add_argument("--remasking", action="store_true")
-    ap.add_argument("--block_length", type=int, default=64)
-    ap.add_argument("--num_remasking", type=int, default=12, help="number of remasking tokens for each block")
+    ap.add_argument("--block_length", type=int, default=32)
+    ap.add_argument("--num_remasking", type=int, default=10, help="number of remasking tokens for each block")
     ap.add_argument("--remasking_mode", type=str, choices=["remdm", "remdm_conf", "PRISM"])
     ap.add_argument("--temperature", type=float, default=0.0)
+    ap.add_argument("--remasking_threshold", type=float, default=-1.0, help="threshold for remasking")
 
     # misc configs
     ap.add_argument("--seed", type=int, default=2025)
-    ap.add_argument("--prompts", default="json_samples/mbpp_prompts.jsonl")
-    ap.add_argument("--output_path", default="mbpp_samples")
+    ap.add_argument("--prompts", default="rebuttal_eval/humaneval_prompts_wo_test_cases.jsonl")
     ap.add_argument("--test", action="store_true", help="test mode")
     ap.add_argument("--track", action="store_true", help="track the samples")
     ap.add_argument("--task_id", type=int, help="task id to track")
