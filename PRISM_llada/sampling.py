@@ -51,16 +51,14 @@ def get_num_tokens_centered(token_nums, steps):
 
     return num_tokens.to(torch.int64)
 
+def token_preallocation(block_mask_index, steps_per_block):
+    return get_num_tokens(block_mask_index.sum(dim=-1), steps_per_block)
 
-def token_preallocation(block_mask_index, steps_per_block, num_remasking = None):
-    if num_remasking is None:
-        return get_num_tokens(block_mask_index.sum(dim=-1), steps_per_block)
-    else:
-        B = block_mask_index.shape[0]
-        num_remasking_tensor = num_remasking * torch.ones(B, device=block_mask_index.device, dtype=torch.int64)
-        num_unmasking_tokens = get_num_tokens(block_mask_index.sum(dim=-1), steps_per_block)
-        num_remasking_tokens = get_num_tokens_centered(num_remasking_tensor, steps_per_block)
-        return num_unmasking_tokens + num_remasking_tokens, num_remasking_tokens
+def remasking_preallocation(block_mask_index, num_remasking, steps_per_block):
+    B = block_mask_index.shape[0]
+    device = block_mask_index.device
+    num_remasking_tensor = torch.full((B, ) , num_remasking, device=device, dtype=torch.int64)
+    return get_num_tokens_centered(num_remasking_tensor, steps_per_block)
 
 def log_trace(x, tokenizer, end_idx, prompt_len, step):
     # helper function to log the trace of the x
@@ -88,8 +86,9 @@ def llada_inference(
     remasking_mode: str,
     num_remasking: int,
     temperature: float,
+    remasking_threshold: float = -1.0, # -1.0 means no thresholding
     mask_id: int = 126336,
-    track: bool = False,
+    track: bool = False
 ):
     # Calculate the number of blocks
     assert max_length % block_length == 0, "max_length must be divisible by block_length"
@@ -122,7 +121,7 @@ def llada_inference(
     rank = dist.get_rank() if dist.is_initialized() else 0
 
     # pre-build the neg_inf tensor
-    neg_inf = torch.tensor(-np.inf, device=device)
+    neg_inf = torch.tensor(-float("inf"), device=device)
 
     # Mixed precision
     autocast_device = "cuda" if device == "cuda" or (isinstance(device, torch.device) and device.type == "cuda") else "cpu"
@@ -147,10 +146,9 @@ def llada_inference(
                 continue
 
             # Pre-allocate the number of unmasking and remasking tokens, size: (B, steps_per_block)
+            num_unmasking_tokens = token_preallocation(block_mask_index, steps_per_block)
             if remasking:
-                num_unmasking_tokens, num_remasking_tokens = token_preallocation(block_mask_index, steps_per_block, num_remasking)
-            else:
-                num_unmasking_tokens = token_preallocation(block_mask_index, steps_per_block)
+                num_remasking_tokens = remasking_preallocation(block_mask_index, num_remasking, steps_per_block)
 
             for i in range(steps_per_block):
                 # Forward pass
@@ -167,16 +165,28 @@ def llada_inference(
                 if remasking:
                     if remasking_mode == "remdm":
                         # remdm uses random noise as the remasking score
-                        remasking_score = torch.rand(out["remasking_conf"].squeeze(-1).shape, device=out["remasking_conf"].device)
-                    else:
+                        remasking_score = -1.0 * torch.rand(out["remasking_conf"].squeeze(-1).shape, device=out["remasking_conf"].device)
+                    elif remasking_mode == "PRISM":
                         # low remasking confidence is more likely to be remasked
-                        remasking_score = -1.0 * out["remasking_conf"].squeeze(-1)
-                    remasking_score = torch.where(block_clean_index , remasking_score, neg_inf)
+                        remasking_score = -1.0 * (out["remasking_conf"].squeeze(-1)).sigmoid()
+                    elif remasking_mode == "remdm_conf":
+                        # the score is already updated in the previous step
+                        remasking_score = remasking_score.to(dtype=out["logits"].dtype)
+                    else:
+                        raise NotImplementedError(f"remasking mode '{remasking_mode}' not supported")
+
+                    remasking_score = torch.where(block_clean_index , remasking_score, neg_inf.to(dtype=remasking_score.dtype))
                     for j in range(remasking_score.shape[0]):
-                        k = min(num_remasking_tokens[j, i].item(), int(block_clean_index[j].sum().item()))
+                        valid_pos = block_clean_index[j] & (remasking_score[j] > remasking_threshold)
+                        valid_ids = torch.nonzero(valid_pos, as_tuple=False).squeeze(1)
+                        k = min(num_remasking_tokens[j, i].item(), valid_ids.numel())
+                        # update num_unmasking tokens
+                        num_unmasking_tokens[j, i] += k
                         if k > 0:
-                            _, select_indices = torch.topk(remasking_score[j], k=k)
-                            x[j, select_indices] = mask_id
+                            scores = remasking_score[j].index_select(0, valid_ids)
+                            _, select_indices = torch.topk(scores, k=k)
+                            to_mask = valid_ids.index_select(0, select_indices)
+                            x[j].index_fill_(0, to_mask, mask_id)
                     
                     if track:
                         log_trace(x, tokenizer, end_idx, prompt_len, step = "remasking")
@@ -210,7 +220,7 @@ def llada_inference(
                         if remasking_mode == "remdm_conf":
                             remasking_score = remasking_score.to(dtype=x0_p.dtype)
                             # update the remasking score as the probability of the chosen token
-                            remasking_score[j , select_indices] = x0_p[j, select_indices]
+                            remasking_score[j , select_indices] = -1.0 * x0_p[j, select_indices]
                 
                 if track:
                     log_trace(x, tokenizer, end_idx, prompt_len, step = "unmasking")
