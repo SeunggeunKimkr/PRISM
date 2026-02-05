@@ -283,7 +283,7 @@ if __name__ == "__main__":
 
     # misc configs
     ap.add_argument("--seed", type=int, default=2025)
-    ap.add_argument("--prompts", default="rebuttal_eval/humaneval_prompts_wo_test_cases.jsonl")
+    ap.add_argument("--prompts", default="humaneval_prompts_wo_test_cases.jsonl") # depends on the task
     ap.add_argument("--test", action="store_true", help="test mode")
     ap.add_argument("--track", action="store_true", help="track the samples")
     ap.add_argument("--task_id", type=int, help="task id to track")
