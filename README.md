@@ -60,6 +60,11 @@ For PRISM fine-tuning, we provide the following scripts:
   ./scripts/finetune_owt_prism.sh
   ```
 
+- **LLaDA**:
+  ```bash
+  ./PRISM_llada/training_scripts/test_run.sh
+  ```
+
 ## Evaluation 🎯
 We provide evaluation scripts for the fine-tuned module using a static sampler:
 
@@ -79,6 +84,11 @@ We provide evaluation scripts for the fine-tuned module using a static sampler:
 
   1. **sampling.loop_steps**: Number of loop iterations to perform.
   2. **sampling.num_remask_loop**: Number of tokens to remask during each iteration.
+
+- **LLaDA** (HumanEval, MBPP) :
+  Code evaluation follows with two procedures;
+  1. *generate samples and save .jsonl file* : PRISM_llada/generate_samples.py
+  2. *evalute .jsonl file*: PRISM_llada/eval_mbpp.py
 
 ## Baselines 🆚
 

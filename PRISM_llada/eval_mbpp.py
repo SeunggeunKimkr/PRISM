@@ -175,7 +175,7 @@ def evaluate(prompts, samples, pass_K):
 if __name__ == "__main__":
     # for loop for eval
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prompts", default = "rebuttal_eval/humaneval_prompts_wo_test_cases.jsonl")
+    parser.add_argument("--prompts", default = "humaneval_prompts_wo_test_cases.jsonl")
     parser.add_argument("--pass_K", default = 1, type = int)
     args = parser.parse_args()
     
