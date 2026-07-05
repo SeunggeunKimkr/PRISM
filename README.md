@@ -2,6 +2,9 @@
   <h1>Fine-Tuning Masked Diffusion for Provable Self-Correction</h1>
 
   <a href="https://arxiv.org/abs/2510.01384"><img src="https://img.shields.io/badge/ArXiv-Preprint-red" alt="ArXiv badge"></a>
+  <a href="https://x.com/Jaeyeon_Kim_0/status/1987994298705736152?s=20">
+  <img src="https://img.shields.io/badge/X-black?logo=x&logoColor=white" alt="X">
+</a>
 
   ![graphical_abstract](./assets/sudoku.gif)
 </div>
